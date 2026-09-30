@@ -6,13 +6,10 @@ const copyIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" 
 const esc = (value) => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let copyId = 0;
 let toastTimer;
-let students = [
-  {id:1,first_name:'Ana Torres',email:'ana@example.com',activo:true},
-  {id:2,first_name:'Carlos Ruiz',email:'carlos@example.com',activo:true},
-  {id:3,first_name:'Laura Díaz',email:'laura@example.com',activo:false}
-];
+const initialStudents = () => [{id:1,first_name:'Ana Torres',year:2026,birth_year:2003,documento:'001234'},{id:2,first_name:'Carlos Ruiz',year:2026,birth_year:2001,documento:'009876'},{id:3,first_name:'Laura Díaz',year:2025,birth_year:2004,documento:'004321'}];
+let students = initialStudents();
 let nextId = 4;
-let editingId = null;
+
 
 function highlight(code) {
   const pattern = /(\/\/[^\n]*|--[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\$[a-zA-Z_][\w]*|\b(?:async|function|const|let|await|return|throw|new|if|else|try|catch|for|of|true|false|null|require_once|echo|exit|SELECT|FROM|ORDER|BY|INSERT|INTO|VALUES|UPDATE|SET|WHERE|DELETE|RETURNING|CREATE|TABLE|PRIMARY|KEY|NOT|NULL|DEFAULT|INTEGER|BOOLEAN|VARCHAR|GENERATED|ALWAYS|AS|IDENTITY)\b|\b\d+\b)/g;
@@ -44,8 +41,8 @@ function methodPage(key) {
       <div class="endpoint"><span>${m.method}</span> /${m.endpoint}</div>
     </div>
     <div class="section-head"><h2>Código listo para copiar</h2><button class="button secondary" data-copy-pair="${key}">${copyIcon} Copiar PHP + JS</button></div>
-    <div class="code-pair">${codePanel(m.php,m.endpoint.split('/')[1],'PHP')}${codePanel(m.js,'frontend.js','JS')}</div>
-    <p class="dependency">El PHP usa <a href="#setup">_helpers.php + conexion.php</a>. Copia esos archivos una vez. <span>·</span> JS: rutas desde la raíz del proyecto.</p>
+    <div class="code-pair">${codePanel(m.php,m.endpoint,'PHP')}${codePanel(m.js,'app.js','JS')}</div>
+    <p class="dependency">Copia <a href="#setup">conexion.php + _helpers.php</a> una vez. <span>·</span> Para el frontend completo: <a href="#table">Formulario + app.js</a>.</p>
     <section class="explanation"><div class="section-head"><h2>Cómo funciona</h2><span class="quiet">Del navegador a la base de datos</span></div>
     <div class="steps">${m.steps.map((s,i)=>`<div class="step"><span class="step-num">0${i+1}</span><h3>${esc(s[0])}</h3><p>${esc(s[1])}</p></div>`).join('')}</div>
     <div class="memory"><span>PARA RECORDAR</span><code>${esc(m.remember)}</code></div></section>
@@ -56,38 +53,38 @@ function setupPage() {
   const terminal = "$env:DB_HOST = '127.0.0.1'\n$env:DB_PORT = '5432'\n$env:DB_NAME = 'prueba_crud'\n$env:DB_USER = 'postgres'\n$env:DB_PASSWORD = 'TU_CLAVE_LOCAL'\nphp -S 127.0.0.1:8000";
   return `${heading('BASE','Preparar el proyecto.','Una conexión compartida y una tabla para practicar las cinco operaciones.','00')}
     <ol class="setup-steps"><li><strong>01 · Abre index.html</strong> para consultar la guía. Funciona sin servidor ni internet.</li><li><strong>02 · Crea prueba_crud en PostgreSQL</strong> y ejecuta database.sql en esa base desde pgAdmin o psql.</li><li><strong>03 · Activa pdo_pgsql en tu PHP</strong> y comprueba con <code>php -m</code> que el módulo aparece. También se usa mbstring para validar nombres.</li><li><strong>04 · Configura las variables de entorno</strong> y ejecuta PHP desde la carpeta pagina. Abre <code>http://127.0.0.1:8000</code>. Un servidor estático no ejecuta PHP.</li></ol>
-    <div class="section-head"><h2>Conexión y estructura de datos</h2><span class="quiet">PHP 8.1+ · PostgreSQL 10+</span></div><div class="code-pair resource-codes">${codePanel(s.connection,'api/conexion.php','PHP')}${codePanel(s.sql,'database.sql','SQL')}</div>
-    <p class="inline-note">El modelo agrega email y activo para mostrar la diferencia entre PUT y PATCH. Si tu tabla solo tiene first_name, adapta el SQL y las validaciones a tu esquema real.</p>
+    <div class="section-head"><h2>Conexión y estructura de datos</h2><span class="quiet">PHP 8.1+ · PostgreSQL 10+</span></div><div class="code-pair resource-codes">${codePanel(s.connection,'conexion.php','PHP')}${codePanel(s.sql,'database.sql','SQL')}</div>
+    <p class="inline-note">El modelo usa tus campos: first_name, year, birth_year y documento, más id para identificar cada registro. documento es texto para conservar los ceros iniciales. Si estudiante ya existe, revisa su esquema antes de ejecutar el SQL.</p>
     <div class="single-code">${codePanel(terminal,'Terminal PowerShell, desde pagina','PS')}</div>
-    <div class="section-head"><h2>Funciones compartidas</h2><span class="quiet">Requeridas por los endpoints</span></div><div class="single-code">${codePanel(s.helpers,'api/_helpers.php','PHP')}</div>
+    <div class="section-head"><h2>Funciones compartidas</h2><span class="quiet">Requeridas por los endpoints</span></div><div class="single-code">${codePanel(s.helpers,'_helpers.php','PHP')}</div>
     <p class="inline-note">.env.example es una referencia. PHP no lo carga automáticamente. Las credenciales reales se configuran en tu entorno local y no se suben a Git.</p>
-    <pre class="file-tree">pagina/\n├── index.html             ← esta guía\n├── assets/                ← diseño y ejemplos\n├── api/\n│   ├── _helpers.php       ← validación y respuestas\n│   ├── conexion.php       ← conexión PDO\n│   ├── listar.php         ← GET\n│   ├── guardar.php        ← POST\n│   ├── actualizar.php     ← PUT\n│   ├── modificar.php      ← PATCH\n│   └── eliminar.php       ← DELETE\n└── database.sql           ← tabla y datos ficticios</pre>
+    <pre class="file-tree">pagina/\n├── index.html             ← esta guía\n├── assets/                ← diseño y ejemplos\n├── _helpers.php       ← validación y respuestas\n├── conexion.php       ← conexión PDO\n├── listar.php         ← GET\n├── guardar.php        ← POST\n├── actualizar.php     ← PUT\n├── modificar.php      ← PATCH\n├── eliminar.php       ← DELETE\n└── database.sql           ← tabla y datos ficticios</pre>
     <div class="sources"><a href="https://www.php.net/manual/en/pdo.prepare.php" target="_blank" rel="noopener noreferrer">PHP · PDO::prepare ↗</a><a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch" target="_blank" rel="noopener noreferrer">MDN · fetch ↗</a><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PUT" target="_blank" rel="noopener noreferrer">MDN · PUT ↗</a><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PATCH" target="_blank" rel="noopener noreferrer">MDN · PATCH ↗</a></div>`;
 }
 function tablePage() {
-  return `${heading('FRONTEND','Del JSON a la tabla.','Construye una fila por estudiante y vuelve a cargar los datos después de cada cambio.','06')}
-    <div class="section-head"><h2>HTML + JavaScript</h2><a class="button secondary" href="#get">Copiar primero el GET ↗</a></div><div class="code-pair resource-codes">${codePanel(guide.table.html,'tabla.html','HTML')}${codePanel(guide.table.js,'tabla.js','JS')}</div>
-    <div class="steps"><div class="step"><span class="step-num">01</span><h3>Identifica el tbody</h3><p>El id tabla-estudiantes permite encontrar el lugar donde se insertan las filas. El encabezado permanece.</p></div><div class="step"><span class="step-num">02</span><h3>Recorre el arreglo</h3><p>for...of crea un tr por estudiante y un td por valor. textContent muestra los nombres como texto.</p></div><div class="step"><span class="step-num">03</span><h3>Actualiza la vista</h3><p>replaceChildren() limpia las filas anteriores. Ejecuta cargarTabla() después de guardar, editar o eliminar.</p></div></div>
-    <div class="memory"><span>PARA RECORDAR</span><code>fetch → response.json() → for...of → tr + td → tbody</code></div><p class="inline-note">Carga el script con defer o al final del body. Copia también listarEstudiantes() de GET. Bootstrap solo cambia la apariencia: no hace la petición ni crea las filas.</p><a class="button" href="#demo">Ver una tabla en acción →</a>`;
+  return `${heading('FRONTEND','Tu formulario y tabla.','Los mismos inputs, ids y funciones del código que compartiste, conectados a los cinco métodos.','06')}
+    <div class="section-head"><h2>HTML + app.js completo</h2><a class="button secondary" href="ejemplo.html">Abrir formulario real ↗</a></div><div class="code-pair resource-codes">${codePanel(guide.table.html,'ejemplo.html','HTML')}${codePanel(guide.table.js,'app.js','JS')}</div>
+    <div class="steps"><div class="step"><span class="step-num">01</span><h3>Tu formulario</h3><p>formEstudiante usa first_name, year, birth_year y documento. submit envía los cuatro valores con FormData.</p></div><div class="step"><span class="step-num">02</span><h3>Tu tabla</h3><p>listarEstudiantes() limpia tablaEstudiantes y recorre las filas. Los botones llaman las funciones con los datos de esa fila.</p></div><div class="step"><span class="step-num">03</span><h3>Editar y eliminar</h3><p>Editar usa prompt() y PUT. Solo nombre usa PATCH. Eliminar usa confirm() y DELETE. Todas vuelven a listar.</p></div></div>
+    <div class="memory"><span>PARA RECORDAR</span><code>GET → JSON · POST / PUT / PATCH / DELETE → texto</code></div><p class="inline-note">Copia el HTML y app.js en archivos separados, junto a los PHP. El código completo ya contiene las funciones y la llamada inicial. No vuelvas a pegar esos métodos por separado en app.js.</p><a class="button" href="#demo">Probar con datos locales →</a>`;
 }
 function demoPage() {
-  return `${heading('PRÁCTICA','Prueba el recorrido.','Crea, edita, cambia el estado y elimina estudiantes para entender cada método.','07')}
+  return `${heading('PRÁCTICA','Tu CRUD en acción.','Prueba nombre, año, año de nacimiento y documento sin configurar una base de datos.','07')}
     <div class="memory"><span>DEMO LOCAL</span><code>Datos ficticios en memoria · no llama a PHP ni PostgreSQL</code></div>
     <div class="demo-heading"><h2>Estudiantes</h2><button class="button secondary" id="reset-demo">Restablecer datos</button></div>
-    <form class="demo-form" id="demo-form"><label>Nombre<input name="first_name" id="demo-name" required maxlength="80" placeholder="Ej. Diego Arias" autocomplete="off"></label><label>Correo<input name="email" id="demo-email" type="email" required maxlength="160" placeholder="diego@example.com" autocomplete="off"></label><button class="button" id="demo-submit" type="submit">Crear · POST</button><button class="button secondary" id="cancel-edit" type="button" hidden>Cancelar edición</button></form>
-    <p class="demo-hint">Editar → PUT &nbsp; · &nbsp; Cambiar estado → PATCH &nbsp; · &nbsp; Eliminar → DELETE</p>
-    <div class="table-wrapper"><table><thead><tr><th>ID</th><th>NOMBRE</th><th>CORREO</th><th>ESTADO</th><th>ACCIONES</th></tr></thead><tbody id="demo-body"></tbody></table></div>
+    <form class="demo-form" id="demo-form"><label>Nombre<input name="first_name" id="demo-name" required maxlength="80" placeholder="Nombre"></label><label>Año<input name="year" id="demo-year" type="number" step="1" required placeholder="Año"></label><label>Año de nacimiento<input name="birth_year" id="demo-birth" type="number" step="1" required placeholder="Año de nacimiento"></label><label>Documento<input name="documento" id="demo-document" required maxlength="100" placeholder="Documento"></label><button class="button" id="demo-submit" type="submit">Guardar · POST</button></form>
+    <p class="demo-hint">Editar → PUT con prompt() &nbsp; · &nbsp; Solo nombre → PATCH &nbsp; · &nbsp; Eliminar → DELETE con confirm()</p>
+    <div class="table-wrapper"><table><thead><tr><th>NOMBRE</th><th>AÑO</th><th>AÑO NACIMIENTO</th><th>DOCUMENTO</th><th>ACCIONES</th></tr></thead><tbody id="demo-body"></tbody></table></div>
     <div class="demo-log" id="demo-log" aria-live="polite"></div><p class="demo-hint">Los cambios se conservan al navegar por la guía. Al recargar el HTML, vuelven los datos iniciales.</p>`;
 }
 function errorsPage() {
   const errors = [
-    ['Unexpected token < al leer JSON','PHP respondió HTML: puede ser una advertencia, una página 404 o un error del servidor. Mira la pestaña Network del navegador y el cuerpo de la respuesta. No imprimas HTML ni mensajes de depuración antes del JSON.'],
+    ['Unexpected token al leer JSON','GET debe responder JSON. Los otros métodos responden texto: usa response.text(). Un Unexpected token G al leer Guardado correctamente indica que intentaste leer texto como JSON. PHP también puede devolver HTML por un error. Mira la pestaña Network del navegador y el cuerpo de la respuesta. No imprimas HTML ni mensajes de depuración antes del JSON.'],
     ['$_POST está vacío con PUT, PATCH o DELETE','En estos ejemplos el cuerpo es JSON. Se lee con file_get_contents("php://input") y se decodifica con json_decode(). $_POST se usa para el POST con FormData.'],
-    ['400 / 415 / 422: datos incorrectos','400 indica JSON inválido; 415, Content-Type incorrecto; 422, campos inválidos o faltantes. Envía activo como true o false, no como "true" o "false".'],
-    ['404: no existe el estudiante o la ruta','Verifica la ruta api/archivo.php. Si PHP devuelve el JSON "Estudiante no encontrado", la ruta sí funciona, pero ese id no existe en la base.'],
+    ['400 / 415 / 422: datos incorrectos','400 indica JSON inválido; 415, Content-Type incorrecto; 422, campos inválidos o faltantes. POST y PUT requieren los cuatro campos; year y birth_year deben ser enteros.'],
+    ['404: no existe el estudiante o la ruta','Verifica la ruta archivo.php. Si PHP devuelve el texto "Estudiante no encontrado", la ruta sí funciona, pero ese id no existe en la base.'],
     ['405: método no permitido','Cada endpoint espera su método. Abrir guardar.php desde la barra del navegador hace GET; para POST debes usar fetch() con method: "POST".'],
     ['500 / could not find driver','Revisa el registro del servidor, activa pdo_pgsql en el PHP que realmente ejecutas y reinícialo. Verifica DB_HOST, DB_PORT, DB_NAME, DB_USER y DB_PASSWORD, y que PostgreSQL esté iniciado.'],
-    ['La tabla no cambia después de guardar','Espera await guardarEstudiante(...), luego await cargarTabla(). Si llamas ambas funciones sin await, el GET puede ocurrir antes de terminar el INSERT.'],
+    ['La tabla no cambia después de guardar','Espera el fetch() de guardar.php, comprueba response.ok y ejecuta await listarEstudiantes(). Si listas antes de que termine el INSERT, los datos pueden verse desactualizados.'],
     ['FormData no llega a PHP','No asignes manualmente Content-Type: multipart/form-data. El navegador agrega el boundary. Los nombres usados en append() deben coincidir con las claves de $_POST.'],
     ['fetch() no entra al catch en un error HTTP','fetch() puede resolver aunque el servidor responda 404 o 500. Comprueba response.ok y lanza un Error. El catch también captura problemas de red y JSON inválido.'],
     ['GitHub muestra la guía, pero no ejecuta PHP','GitHub guarda el código; GitHub Pages sirve archivos estáticos. La guía funciona allí, pero los endpoints PHP requieren un servidor PHP con PostgreSQL.'],
@@ -131,31 +128,34 @@ function renderStudents(method='GET',payload=null) {
   if(!students.length) { const row=body.insertRow(), cell=row.insertCell();cell.colSpan=5;cell.textContent='No hay estudiantes. Crea el primero con el formulario.'; }
   students.forEach(s=>{
     const row=body.insertRow();
-    [s.id,s.first_name,s.email].forEach(value=>{row.insertCell().textContent=value;});
-    const state=document.createElement('span');state.className='state-label'+(s.activo?' on':'');state.textContent=s.activo?'● Activo':'○ Inactivo';row.insertCell().append(state);
+    [s.first_name,s.year,s.birth_year,s.documento].forEach(value=>{row.insertCell().textContent=value;});
     const actions=document.createElement('div');actions.className='row-actions';
-    [['edit','Editar'],['toggle',s.activo?'Desactivar':'Activar'],['delete','Eliminar']].forEach(([action,label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.action=action;b.dataset.id=s.id;b.setAttribute('aria-label',`${label} a ${s.first_name}`);actions.append(b);});
+    [['edit','Editar'],['name','Solo nombre'],['delete','Eliminar']].forEach(([action,label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.action=action;b.dataset.id=s.id;b.setAttribute('aria-label',`${label} a ${s.first_name}`);actions.append(b);});
     row.insertCell().append(actions);
   });
   const status=method==='POST'?'201 Created':'200 OK';
-  document.getElementById('demo-log').textContent=`SIMULACIÓN · ${method} → ${status}\n${payload ? 'Cuerpo: '+JSON.stringify(payload)+'\n' : ''}Tabla: ${students.length} estudiante${students.length===1?'':'s'} · Renderizado actualizado`;
+  document.getElementById('demo-log').textContent=`SIMULACIÓN · ${method} → ${status}\n${payload ? 'Cuerpo: '+JSON.stringify(payload)+'\n' : ''}Tabla: ${students.length} estudiantes · Renderizado actualizado`;
 }
-function cancelEdit() { editingId=null;document.getElementById('demo-form').reset();document.getElementById('demo-submit').textContent='Crear · POST';document.getElementById('cancel-edit').hidden=true; }
 function bindDemo() {
   document.getElementById('demo-form').addEventListener('submit',e=>{
-    e.preventDefault();const name=document.getElementById('demo-name').value.trim();const email=document.getElementById('demo-email').value.trim();if(!name){showToast('Escribe un nombre');return;}
-    let payload, method;
-    if(editingId !== null){const s=students.find(x=>x.id===editingId);if(!s){cancelEdit();return;}s.first_name=name;s.email=email;payload={...s};method='PUT';}
-    else{payload={id:nextId++,first_name:name,email,activo:true};students.push(payload);method='POST';}
-    cancelEdit();renderStudents(method,payload);
+    e.preventDefault();const name=document.getElementById('demo-name').value.trim();const documentValue=document.getElementById('demo-document').value.trim();
+    if(!name || !documentValue){showToast('Completa nombre y documento');return;}
+    const s={id:nextId++,first_name:name,year:Number(document.getElementById('demo-year').value),birth_year:Number(document.getElementById('demo-birth').value),documento:documentValue};
+    students.push(s);e.target.reset();renderStudents('POST',s);
   });
-  document.getElementById('cancel-edit').addEventListener('click',cancelEdit);
-  document.getElementById('reset-demo').addEventListener('click',()=>{students=[{id:1,first_name:'Ana Torres',email:'ana@example.com',activo:true},{id:2,first_name:'Carlos Ruiz',email:'carlos@example.com',activo:true},{id:3,first_name:'Laura Díaz',email:'laura@example.com',activo:false}];nextId=4;cancelEdit();renderStudents();showToast('Datos iniciales restaurados');});
+  document.getElementById('reset-demo').addEventListener('click',()=>{students=initialStudents();nextId=4;document.getElementById('demo-form').reset();renderStudents();showToast('Datos iniciales restaurados');});
   document.getElementById('demo-body').addEventListener('click',e=>{
     const b=e.target.closest('[data-action]');if(!b)return;const s=students.find(x=>x.id===Number(b.dataset.id));if(!s)return;
-    if(b.dataset.action==='edit'){editingId=s.id;document.getElementById('demo-name').value=s.first_name;document.getElementById('demo-email').value=s.email;document.getElementById('demo-submit').textContent='Guardar cambios · PUT';document.getElementById('cancel-edit').hidden=false;document.getElementById('demo-name').focus();}
-    if(b.dataset.action==='toggle'){s.activo=!s.activo;renderStudents('PATCH',{id:s.id,activo:s.activo});}
-    if(b.dataset.action==='delete' && confirm(`¿Eliminar a ${s.first_name} de la demo?`)){students=students.filter(x=>x.id!==s.id);if(editingId===s.id)cancelEdit();renderStudents('DELETE',{id:s.id});}
+    if(b.dataset.action==='edit'){
+      const name=prompt('Nombre:',s.first_name);if(name===null)return;
+      const year=prompt('Año:',s.year);if(year===null)return;
+      const birth=prompt('Año nacimiento:',s.birth_year);if(birth===null)return;
+      const doc=prompt('Documento:',s.documento);if(doc===null)return;
+      if(!name.trim() || !doc.trim() || !year.trim() || !birth.trim() || !Number.isInteger(Number(year)) || !Number.isInteger(Number(birth))){showToast('Completa los campos; los años deben ser enteros');return;}
+      Object.assign(s,{first_name:name,year:Number(year),birth_year:Number(birth),documento:doc});renderStudents('PUT',s);
+    }
+    if(b.dataset.action==='name'){const name=prompt('Nuevo nombre:',s.first_name);if(name===null)return;if(!name.trim()){showToast('El nombre es obligatorio');return;}s.first_name=name;renderStudents('PATCH',{id:s.id,first_name:name});}
+    if(b.dataset.action==='delete' && confirm(`¿Eliminar a ${s.first_name} de la demo?`)){students=students.filter(x=>x.id!==s.id);renderStudents('DELETE',{id:s.id});}
   });
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-copy],[data-copy-pair]');if(!b)return;if(b.dataset.copy)copy(snippets.get(b.dataset.copy),b);else{const m=guide.methods[b.dataset.copyPair];copy(`// ARCHIVO PHP: ${m.endpoint}\n${m.php}\n\n// ARCHIVO JAVASCRIPT (guardar por separado):\n${m.js}`,b);}});

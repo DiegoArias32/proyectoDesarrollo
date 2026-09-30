@@ -5,7 +5,7 @@ window.GUIDE_DATA = {
       "method": "GET",
       "title": "Leer registros.",
       "subtitle": "Consulta los estudiantes y recibe un arreglo JSON para mostrar en tu tabla.",
-      "endpoint": "api/listar.php",
+      "endpoint": "listar.php",
       "sql": "SELECT",
       "input": "Sin cuerpo",
       "output": "200 · Arreglo JSON",
@@ -19,140 +19,140 @@ window.GUIDE_DATA = {
           "prepare() crea la consulta; execute() la ejecuta; fetchAll() recupera todas las filas."
         ],
         [
-          "El navegador recibe JSON",
-          "response.json() convierte la respuesta en un arreglo. Usa ese arreglo para construir la tabla."
+          "Crea las filas y los botones",
+          "forEach() recorre el arreglo. textContent muestra cada campo y onclick asigna funciones sin insertar el nombre dentro de código HTML."
         ]
       ],
       "remember": "GET → SELECT → fetchAll() → JSON → tabla",
-      "tip": "Un GET vacío debe responder [] con estado 200. No es un error: simplemente no hay registros.",
-      "php": "<?php\nrequire_once __DIR__ . '/_helpers.php';\nexigirMetodo('GET');\nrequire_once __DIR__ . '/conexion.php';\n\ntry {\n    $sql = 'SELECT id, first_name, email, activo FROM estudiante ORDER BY id';\n    $stmt = $conn->prepare($sql);\n    $stmt->execute();\n    $datos = $stmt->fetchAll();\n    responder(array_map('normalizar', $datos));\n} catch (PDOException $e) {\n    errorBaseDatos($e);\n}\n",
-      "js": "async function listarEstudiantes() {\n    const response = await fetch('api/listar.php');\n    const datos = await response.json();\n\n    if (!response.ok) {\n        throw new Error(datos.error || 'No se pudo listar');\n    }\n\n    return datos; // Un arreglo de estudiantes.\n}\n\n// Dentro de otra función async:\n// const estudiantes = await listarEstudiantes();\n// renderizarTabla(estudiantes);\n",
-      "response": "[\n  { \"id\": 1, \"first_name\": \"Ana Torres\",\n    \"email\": \"ana@example.com\", \"activo\": true }\n]"
+      "tip": "GET responde JSON: usa response.json(). El tbody es tablaEstudiantes y los botones llaman editarEstudiante(), cambiarNombre() y eliminarEstudiante().",
+      "php": "<?php\nrequire_once \"conexion.php\";\nexigirMetodo('GET');\n\n$sql = \"SELECT * FROM estudiante ORDER BY id\";\n$stmt = $conn->prepare($sql);\n$stmt->execute();\n$datos = $stmt->fetchAll(PDO::FETCH_ASSOC);\n\nheader(\"Content-Type: application/json; charset=utf-8\");\necho json_encode($datos, JSON_UNESCAPED_UNICODE);\n",
+      "js": "async function listarEstudiantes() {\n    const response = await fetch(\"listar.php\");\n    const estudiantes = await response.json();\n    if (!response.ok) throw new Error(estudiantes.error || \"No se pudo listar\");\n\n    tabla.innerHTML = \"\";\n    estudiantes.forEach(estudiante => {\n        const fila = document.createElement(\"tr\");\n        // textContent evita que un nombre con comillas rompa los botones.\n        [estudiante.first_name, estudiante.year,\n         estudiante.birth_year, estudiante.documento].forEach(valor => {\n            const celda = document.createElement(\"td\");\n            celda.textContent = valor;\n            fila.appendChild(celda);\n        });\n\n        const acciones = document.createElement(\"td\");\n        const editar = document.createElement(\"button\");\n        editar.textContent = \"Editar\";\n        editar.onclick = () => editarEstudiante(estudiante.id,\n            estudiante.first_name, estudiante.year,\n            estudiante.birth_year, estudiante.documento).catch(mostrarError);\n\n        const nombre = document.createElement(\"button\");\n        nombre.textContent = \"Solo nombre\";\n        nombre.onclick = () => cambiarNombre(estudiante.id,\n            estudiante.first_name).catch(mostrarError);\n\n        const eliminar = document.createElement(\"button\");\n        eliminar.textContent = \"Eliminar\";\n        eliminar.onclick = () => eliminarEstudiante(estudiante.id).catch(mostrarError);\n        acciones.append(editar, nombre, eliminar);\n        fila.appendChild(acciones);\n        tabla.appendChild(fila);\n    });\n    mensaje.textContent = estudiantes.length ? \"\" : \"No hay estudiantes\";\n}\n",
+      "response": "[\n  {\n    \"id\": 1,\n    \"first_name\": \"Ana Torres\",\n    \"year\": 2026,\n    \"birth_year\": 2003,\n    \"documento\": \"001234\"\n  }\n]"
     },
     "post": {
       "number": "02",
       "method": "POST",
       "title": "Crear un registro.",
-      "subtitle": "Envía el formulario, guarda el estudiante y recibe su nuevo identificador.",
-      "endpoint": "api/guardar.php",
+      "subtitle": "Envía tu formulario con nombre, año, año de nacimiento y documento.",
+      "endpoint": "guardar.php",
       "sql": "INSERT",
       "input": "FormData → $_POST",
-      "output": "201 · Registro creado",
+      "output": "201 · Texto de confirmación",
       "steps": [
         [
-          "Arma el formulario",
-          "FormData reúne first_name y email. No agregues Content-Type: el navegador incluye el boundary correcto."
+          "Captura submit",
+          "event.preventDefault() evita recargar la página. Los cuatro append() usan exactamente los nombres de tus inputs."
         ],
         [
-          "PHP lee y valida $_POST",
-          "Los nombres de append() deben coincidir con las claves de $_POST. prepare() mantiene los valores separados del SQL."
+          "PHP lee los cuatro campos",
+          "FormData llega a $_POST. INSERT guarda first_name, year, birth_year y documento con una consulta preparada."
         ],
         [
-          "INSERT guarda y devuelve",
-          "RETURNING entrega el registro creado. activo toma TRUE por defecto; después puedes volver a cargar la tabla."
+          "Refresca la tabla",
+          "Después de una respuesta correcta, reset() limpia el formulario y listarEstudiantes() vuelve a pedir los datos."
         ]
       ],
       "remember": "POST → FormData → $_POST → INSERT",
-      "tip": "Usa $_POST para este formulario. $_REQUEST mezcla orígenes según la configuración y no deja tan claro de dónde viene el dato.",
-      "php": "<?php\nrequire_once __DIR__ . '/_helpers.php';\nexigirMetodo('POST');\n\n// FormData de JavaScript llega a $_POST.\n$first_name = validarNombre($_POST['first_name'] ?? null);\n$email = validarEmail($_POST['email'] ?? null);\nrequire_once __DIR__ . '/conexion.php';\n\ntry {\n    $sql = 'INSERT INTO estudiante (first_name, email)\n            VALUES (:first_name, :email)\n            RETURNING id, first_name, email, activo';\n    $stmt = $conn->prepare($sql);\n    $stmt->execute(['first_name' => $first_name, 'email' => $email]);\n    responder(normalizar($stmt->fetch()), 201);\n} catch (PDOException $e) {\n    errorBaseDatos($e);\n}\n",
-      "js": "async function guardarEstudiante(first_name, email) {\n    const formulario = new FormData();\n    formulario.append('first_name', first_name);\n    formulario.append('email', email);\n\n    const response = await fetch('api/guardar.php', {\n        method: 'POST',\n        body: formulario\n        // FormData: el navegador configura Content-Type.\n    });\n    const datos = await response.json();\n    if (!response.ok) throw new Error(datos.error || 'No se pudo guardar');\n    return datos; // Incluye el id generado.\n}\n\n// await guardarEstudiante('Ana Torres', 'ana@example.com');\n",
-      "response": "{\n  \"id\": 4, \"first_name\": \"Ana Torres\",\n  \"email\": \"ana@example.com\", \"activo\": true\n}"
+      "tip": "Tu PHP pegado insertaba solo first_name. Este INSERT guarda los cuatro campos. La respuesta es texto: usa response.text(), no response.json().",
+      "php": "<?php\nrequire_once \"conexion.php\";\nexigirMetodo('POST');\n\n// FormData llega a $_POST.\n$first_name = $_POST[\"first_name\"] ?? null;\n$year = $_POST[\"year\"] ?? null;\n$birth_year = $_POST[\"birth_year\"] ?? null;\n$documento = $_POST[\"documento\"] ?? null;\nvalidarCampos($first_name, $year, $birth_year, $documento);\n\n$sql = \"INSERT INTO estudiante\n        (first_name, year, birth_year, documento)\n        VALUES (:first_name, :year, :birth_year, :documento)\";\n$stmt = $conn->prepare($sql);\n$stmt->execute([\n    \"first_name\" => $first_name,\n    \"year\" => $year,\n    \"birth_year\" => $birth_year,\n    \"documento\" => $documento\n]);\n\nhttp_response_code(201);\nheader(\"Content-Type: text/plain; charset=utf-8\");\necho \"Guardado correctamente\";\n",
+      "js": "formEstudiante.addEventListener(\"submit\", async function (event) {\n    event.preventDefault();\n    const datos = new FormData();\n    datos.append(\"first_name\", document.getElementById(\"first_name\").value);\n    datos.append(\"year\", document.getElementById(\"year\").value);\n    datos.append(\"birth_year\", document.getElementById(\"birth_year\").value);\n    datos.append(\"documento\", document.getElementById(\"documento\").value);\n\n    const boton = formEstudiante.querySelector('button[type=\"submit\"]');\n    boton.disabled = true;\n    try {\n        const response = await fetch(\"guardar.php\", {\n            method: \"POST\",\n            body: datos\n        });\n        const respuesta = await response.text();\n        if (!response.ok) throw new Error(respuesta);\n        formEstudiante.reset();\n        await listarEstudiantes();\n        mensaje.textContent = respuesta;\n    } catch (error) {\n        mostrarError(error);\n    } finally {\n        boton.disabled = false;\n    }\n});\n",
+      "response": "Guardado correctamente"
     },
     "put": {
       "number": "03",
       "method": "PUT",
       "title": "Actualizar completo.",
-      "subtitle": "Reemplaza todos los campos editables del estudiante identificado por su id.",
-      "endpoint": "api/actualizar.php",
+      "subtitle": "Edita con prompt() y envía los cuatro campos del estudiante, como en tu ejemplo.",
+      "endpoint": "actualizar.php",
       "sql": "UPDATE",
       "input": "JSON → php://input",
-      "output": "200 · Registro actualizado",
+      "output": "200 · Texto de confirmación",
       "steps": [
         [
-          "Envía todos los campos",
-          "Este contrato exige id, first_name, email y activo. JSON.stringify() convierte el objeto en texto JSON."
+          "Pregunta por los cuatro valores",
+          "prompt() propone el valor actual. Si pulsas Cancelar, devuelve null y la función termina sin enviar cambios."
         ],
         [
-          "PHP lee el cuerpo JSON",
-          "leerJSON() usa file_get_contents(\"php://input\") y json_decode(). PUT con JSON no llena $_POST."
+          "PHP recibe el objeto",
+          "JSON.stringify() envía id, first_name, year, birth_year y documento. leerJSON() procesa php://input."
         ],
         [
-          "UPDATE cambia esa fila",
-          "WHERE id = :id delimita el registro. Si no existe, responde 404. El id identifica la fila y no se reemplaza."
+          "Actualiza la fila y recarga",
+          "UPDATE reemplaza los cuatro campos editables con WHERE id = :id. Luego listarEstudiantes() muestra los cambios."
         ]
       ],
       "remember": "PUT → JSON completo → UPDATE ... WHERE id",
-      "tip": "PUT representa el reemplazo de los campos editables. En este proyecto, omitir uno responde 422. Para cambiar solo activo, usa PATCH.",
-      "php": "<?php\nrequire_once __DIR__ . '/_helpers.php';\nexigirMetodo('PUT');\n\n// PUT reemplaza los tres campos editables del estudiante.\n$datos = leerJSON();\n$id = validarID($datos['id'] ?? null);\n$first_name = validarNombre($datos['first_name'] ?? null);\n$email = validarEmail($datos['email'] ?? null);\n$activo = validarActivo($datos['activo'] ?? null);\nrequire_once __DIR__ . '/conexion.php';\n\ntry {\n    $sql = 'UPDATE estudiante\n            SET first_name = :first_name, email = :email, activo = :activo\n            WHERE id = :id\n            RETURNING id, first_name, email, activo';\n    $stmt = $conn->prepare($sql);\n    $stmt->bindValue(':id', $id, PDO::PARAM_INT);\n    $stmt->bindValue(':first_name', $first_name);\n    $stmt->bindValue(':email', $email);\n    $stmt->bindValue(':activo', $activo, PDO::PARAM_BOOL);\n    $stmt->execute();\n    $fila = $stmt->fetch();\n    if (!$fila) responder(['error' => 'Estudiante no encontrado'], 404);\n    responder(normalizar($fila));\n} catch (PDOException $e) {\n    errorBaseDatos($e);\n}\n",
-      "js": "async function actualizarEstudiante(id, first_name, email, activo) {\n    const response = await fetch('api/actualizar.php', {\n        method: 'PUT',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ id, first_name, email, activo })\n    });\n\n    const datos = await response.json();\n    if (!response.ok) throw new Error(datos.error || 'No se pudo actualizar');\n    return datos;\n}\n\n// Envía TODOS los campos editables:\n// await actualizarEstudiante(1, 'Ana Torres', 'ana@example.com', true);\n",
-      "response": "{\n  \"id\": 1, \"first_name\": \"Ana Torres\",\n  \"email\": \"ana@example.com\", \"activo\": true\n}"
+      "tip": "El PHP que pegaste solo actualizaba el nombre. Este PUT actualiza los cuatro campos. Si falta alguno, responde 422.",
+      "php": "<?php\nrequire_once \"conexion.php\";\nexigirMetodo('PUT');\n\n// leerJSON() hace json_decode(file_get_contents(\"php://input\"), true)\n// y comprueba que el cuerpo sea un objeto JSON válido.\n$datos = leerJSON();\n$id = validarID($datos[\"id\"] ?? null);\n$first_name = $datos[\"first_name\"] ?? null;\n$year = $datos[\"year\"] ?? null;\n$birth_year = $datos[\"birth_year\"] ?? null;\n$documento = $datos[\"documento\"] ?? null;\nvalidarCampos($first_name, $year, $birth_year, $documento);\n\n$sql = \"UPDATE estudiante\n        SET first_name = :first_name, year = :year,\n            birth_year = :birth_year, documento = :documento\n        WHERE id = :id\";\n$stmt = $conn->prepare($sql);\n$stmt->execute([\n    \"first_name\" => $first_name,\n    \"year\" => $year,\n    \"birth_year\" => $birth_year,\n    \"documento\" => $documento,\n    \"id\" => $id\n]);\n\nif ($stmt->rowCount() === 0) fallar('Estudiante no encontrado', 404);\nheader(\"Content-Type: text/plain; charset=utf-8\");\necho \"Actualizado\";\n",
+      "js": "async function editarEstudiante(id, first_name, year, birth_year, documento) {\n    const nuevoNombre = prompt(\"Nombre:\", first_name);\n    if (nuevoNombre === null) return;\n    const nuevoYear = prompt(\"Año:\", year);\n    if (nuevoYear === null) return;\n    const nuevoNacimiento = prompt(\"Año nacimiento:\", birth_year);\n    if (nuevoNacimiento === null) return;\n    const nuevoDocumento = prompt(\"Documento:\", documento);\n    if (nuevoDocumento === null) return;\n\n    const response = await fetch(\"actualizar.php\", {\n        method: \"PUT\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify({\n            id: id,\n            first_name: nuevoNombre,\n            year: nuevoYear,\n            birth_year: nuevoNacimiento,\n            documento: nuevoDocumento\n        })\n    });\n    const respuesta = await response.text();\n    if (!response.ok) throw new Error(respuesta);\n    await listarEstudiantes();\n    mensaje.textContent = respuesta;\n}\n",
+      "response": "Actualizado"
     },
     "patch": {
       "number": "04",
       "method": "PATCH",
       "title": "Cambiar un campo.",
-      "subtitle": "Modifica solo el estado activo y conserva el nombre y el correo existentes.",
-      "endpoint": "api/modificar.php",
+      "subtitle": "Cambia únicamente first_name; conserva year, birth_year y documento.",
+      "endpoint": "modificar.php",
       "sql": "UPDATE",
       "input": "JSON parcial → php://input",
-      "output": "200 · Estado actualizado",
+      "output": "200 · Texto de confirmación",
       "steps": [
         [
-          "Envía id y activo",
-          "Este PATCH tiene un contrato concreto: cambia únicamente activo. true y false son booleanos, sin comillas."
+          "Pide el nuevo nombre",
+          "prompt() solicita first_name. Cancelar termina la función. Solo se envían id y first_name."
         ],
         [
-          "PHP valida lo recibido",
-          "leerJSON() procesa el cuerpo. validarActivo() exige un booleano; los campos adicionales se rechazan para evitar falsas expectativas."
+          "Lee y valida el JSON",
+          "Este PATCH acepta únicamente id y first_name. No necesita reenviar los otros tres campos."
         ],
         [
-          "UPDATE toca solo activo",
-          "SET activo = :activo conserva first_name y email. PARAM_BOOL transmite el tipo correcto a PostgreSQL."
+          "Modifica solo el nombre",
+          "UPDATE usa SET first_name = :first_name y conserva el resto del registro. Después recarga la tabla."
         ]
       ],
-      "remember": "PATCH → JSON parcial → UPDATE de un campo",
-      "tip": "PUT y PATCH pueden usar UPDATE. La diferencia está en el contrato: reemplazo completo frente a modificación parcial.",
-      "php": "<?php\nrequire_once __DIR__ . '/_helpers.php';\nexigirMetodo('PATCH');\n\n// En este ejemplo PATCH modifica únicamente el campo activo.\n$datos = leerJSON();\nif (array_diff(array_keys($datos), ['id', 'activo'])) {\n    responder(['error' => 'Este PATCH acepta únicamente id y activo'], 422);\n}\n$id = validarID($datos['id'] ?? null);\n$activo = validarActivo($datos['activo'] ?? null);\nrequire_once __DIR__ . '/conexion.php';\n\ntry {\n    $sql = 'UPDATE estudiante SET activo = :activo WHERE id = :id\n            RETURNING id, first_name, email, activo';\n    $stmt = $conn->prepare($sql);\n    $stmt->bindValue(':id', $id, PDO::PARAM_INT);\n    $stmt->bindValue(':activo', $activo, PDO::PARAM_BOOL);\n    $stmt->execute();\n    $fila = $stmt->fetch();\n    if (!$fila) responder(['error' => 'Estudiante no encontrado'], 404);\n    responder(normalizar($fila));\n} catch (PDOException $e) {\n    errorBaseDatos($e);\n}\n",
-      "js": "async function cambiarEstado(id, activo) {\n    const response = await fetch('api/modificar.php', {\n        method: 'PATCH',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ id, activo })\n    });\n\n    const datos = await response.json();\n    if (!response.ok) throw new Error(datos.error || 'No se pudo modificar');\n    return datos;\n}\n\n// Cambia solo el estado; conserva nombre y correo:\n// await cambiarEstado(1, false);\n",
-      "response": "{\n  \"id\": 1, \"first_name\": \"Ana Torres\",\n  \"email\": \"ana@example.com\", \"activo\": false\n}"
+      "remember": "PATCH → { id, first_name } → UPDATE de un campo",
+      "tip": "PUT actualiza los cuatro campos; este PATCH actualiza solo el nombre. Ambos usan UPDATE, con un contrato distinto.",
+      "php": "<?php\nrequire_once \"conexion.php\";\nexigirMetodo('PATCH');\n\n$datos = leerJSON();\nif (array_diff(array_keys($datos), ['id', 'first_name'])) {\n    fallar('Este PATCH acepta únicamente id y first_name', 422);\n}\n$id = validarID($datos[\"id\"] ?? null);\n$first_name = $datos[\"first_name\"] ?? null;\nvalidarNombre($first_name);\n\n$sql = \"UPDATE estudiante\n        SET first_name = :first_name\n        WHERE id = :id\";\n$stmt = $conn->prepare($sql);\n$stmt->execute([\n    \"first_name\" => $first_name,\n    \"id\" => $id\n]);\n\nif ($stmt->rowCount() === 0) fallar('Estudiante no encontrado', 404);\nheader(\"Content-Type: text/plain; charset=utf-8\");\necho \"Nombre actualizado\";\n",
+      "js": "async function cambiarNombre(id, first_name) {\n    const nuevoNombre = prompt(\"Nuevo nombre:\", first_name);\n    if (nuevoNombre === null) return;\n\n    const response = await fetch(\"modificar.php\", {\n        method: \"PATCH\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify({ id: id, first_name: nuevoNombre })\n    });\n    const respuesta = await response.text();\n    if (!response.ok) throw new Error(respuesta);\n    await listarEstudiantes();\n    mensaje.textContent = respuesta;\n}\n",
+      "response": "Nombre actualizado"
     },
     "delete": {
       "number": "05",
       "method": "DELETE",
       "title": "Eliminar un registro.",
       "subtitle": "Envía el id y elimina únicamente el estudiante que corresponde a ese identificador.",
-      "endpoint": "api/eliminar.php",
+      "endpoint": "eliminar.php",
       "sql": "DELETE",
       "input": "JSON { id } → php://input",
-      "output": "200 · Confirmación JSON",
+      "output": "200 · Texto de confirmación",
       "steps": [
         [
-          "Confirma en la interfaz",
-          "Antes de llamar esta función desde un botón, pide confirmación al usuario y envía el id del registro seleccionado."
+          "Confirma la eliminación",
+          "confirm() devuelve true o false. Si el usuario cancela, return evita llamar a PHP."
         ],
         [
-          "PHP valida el identificador",
-          "El id debe ser un entero mayor que cero. Una consulta preparada recibe el valor como parámetro."
+          "Envía únicamente el id",
+          "JSON.stringify({ id }) crea el cuerpo. PHP valida el identificador y lo pasa como parámetro."
         ],
         [
-          "DELETE elimina y confirma",
-          "WHERE limita la eliminación a ese id. RETURNING permite verificar si existía. Después refresca la tabla."
+          "Elimina y recarga",
+          "DELETE ... WHERE id borra una fila. response.text() lee la confirmación y listarEstudiantes() actualiza la vista."
         ]
       ],
       "remember": "DELETE → id → DELETE ... WHERE id → recargar",
-      "tip": "Nunca omitas WHERE en el DELETE de un registro. Este ejemplo responde JSON con 200; si usas 204, no debes llamar response.json().",
-      "php": "<?php\nrequire_once __DIR__ . '/_helpers.php';\nexigirMetodo('DELETE');\n\n$datos = leerJSON();\n$id = validarID($datos['id'] ?? null);\nrequire_once __DIR__ . '/conexion.php';\n\ntry {\n    $sql = 'DELETE FROM estudiante WHERE id = :id RETURNING id';\n    $stmt = $conn->prepare($sql);\n    $stmt->execute(['id' => $id]);\n    $fila = $stmt->fetch();\n    if (!$fila) responder(['error' => 'Estudiante no encontrado'], 404);\n    responder(['mensaje' => 'Estudiante eliminado', 'id' => (int) $fila['id']]);\n} catch (PDOException $e) {\n    errorBaseDatos($e);\n}\n",
-      "js": "async function eliminarEstudiante(id) {\n    const response = await fetch('api/eliminar.php', {\n        method: 'DELETE',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ id })\n    });\n\n    const datos = await response.json();\n    if (!response.ok) throw new Error(datos.error || 'No se pudo eliminar');\n    return datos;\n}\n\n// await eliminarEstudiante(1);\n",
-      "response": "{\n  \"mensaje\": \"Estudiante eliminado\",\n  \"id\": 1\n}"
+      "tip": "WHERE id = :id limita la eliminación. PHP responde texto con 200; si usas response.json(), fallará al leer \"Eliminado\".",
+      "php": "<?php\nrequire_once \"conexion.php\";\nexigirMetodo('DELETE');\n\n$datos = leerJSON();\n$id = validarID($datos[\"id\"] ?? null);\n\n$sql = \"DELETE FROM estudiante WHERE id = :id\";\n$stmt = $conn->prepare($sql);\n$stmt->execute([\"id\" => $id]);\n\nif ($stmt->rowCount() === 0) fallar('Estudiante no encontrado', 404);\nheader(\"Content-Type: text/plain; charset=utf-8\");\necho \"Eliminado\";\n",
+      "js": "async function eliminarEstudiante(id) {\n    const confirmar = confirm(\"¿Eliminar estudiante?\");\n    if (!confirmar) return;\n\n    const response = await fetch(\"eliminar.php\", {\n        method: \"DELETE\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify({ id: id })\n    });\n    const respuesta = await response.text();\n    if (!response.ok) throw new Error(respuesta);\n    await listarEstudiantes();\n    mensaje.textContent = respuesta;\n}\n",
+      "response": "Eliminado"
     }
   },
   "setup": {
-    "connection": "<?php\n// Variables de entorno: configura tus valores en el servidor local.\n// No guardes contraseñas reales en Git.\n$host = getenv('DB_HOST') ?: '127.0.0.1';\n$port = getenv('DB_PORT') ?: '5432';\n$base = getenv('DB_NAME') ?: 'prueba_crud';\n$usuario = getenv('DB_USER') ?: 'postgres';\n$clave = getenv('DB_PASSWORD') ?: '';\n\ntry {\n    $conn = new PDO(\n        \"pgsql:host=$host;port=$port;dbname=$base\",\n        $usuario,\n        $clave,\n        [\n            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,\n            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,\n            PDO::ATTR_EMULATE_PREPARES => false\n        ]\n    );\n} catch (PDOException $e) {\n    errorBaseDatos($e);\n}\n",
-    "helpers": "<?php\n// Funciones compartidas por los cinco endpoints.\nfunction responder(array $datos, int $estado = 200): never {\n    http_response_code($estado);\n    header('Content-Type: application/json; charset=utf-8');\n    echo json_encode($datos, JSON_UNESCAPED_UNICODE);\n    exit;\n}\n\nfunction exigirMetodo(string $metodo): void {\n    if ($_SERVER['REQUEST_METHOD'] !== $metodo) {\n        header('Allow: ' . $metodo);\n        responder(['error' => 'Método no permitido'], 405);\n    }\n}\n\nfunction leerJSON(): array {\n    $tipo = strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0]));\n    if ($tipo !== 'application/json') {\n        responder(['error' => 'Envía Content-Type: application/json'], 415);\n    }\n    try {\n        $objeto = json_decode(file_get_contents('php://input'), false, 512, JSON_THROW_ON_ERROR);\n    } catch (JsonException $e) {\n        responder(['error' => 'El JSON no es válido'], 400);\n    }\n    if (!is_object($objeto)) {\n        responder(['error' => 'El cuerpo debe ser un objeto JSON'], 400);\n    }\n    return get_object_vars($objeto);\n}\n\nfunction validarID(mixed $valor): int {\n    if (!is_int($valor) && !is_string($valor)) {\n        responder(['error' => 'El id debe ser un entero positivo'], 422);\n    }\n    $id = filter_var($valor, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);\n    if ($id === false) responder(['error' => 'El id debe ser un entero positivo'], 422);\n    return $id;\n}\n\nfunction validarNombre(mixed $valor): string {\n    if (!is_string($valor) || trim($valor) === '' || mb_strlen(trim($valor)) > 80) {\n        responder(['error' => 'first_name es obligatorio; máximo 80 caracteres'], 422);\n    }\n    return trim($valor);\n}\n\nfunction validarEmail(mixed $valor): string {\n    if (!is_string($valor) || strlen(trim($valor)) > 160 || !filter_var(trim($valor), FILTER_VALIDATE_EMAIL)) {\n        responder(['error' => 'email debe ser un correo válido; máximo 160 caracteres'], 422);\n    }\n    return trim($valor);\n}\n\nfunction validarActivo(mixed $valor): bool {\n    if (!is_bool($valor)) responder(['error' => 'activo debe ser true o false, sin comillas'], 422);\n    return $valor;\n}\n\nfunction normalizar(array $fila): array {\n    $fila['id'] = (int) $fila['id'];\n    $fila['activo'] = in_array($fila['activo'], [true, 1, '1', 't', 'true'], true);\n    return $fila;\n}\n\nfunction errorBaseDatos(PDOException $e): never {\n    error_log($e->getMessage());\n    responder(['error' => 'No se pudo completar la operación en la base de datos'], 500);\n}\n",
-    "sql": "-- Crea primero la base prueba_crud desde pgAdmin o psql.\n-- Luego ejecuta este archivo dentro de esa base.\nCREATE TABLE IF NOT EXISTS estudiante (\n    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n    first_name VARCHAR(80) NOT NULL,\n    email VARCHAR(160) NOT NULL,\n    activo BOOLEAN NOT NULL DEFAULT TRUE\n);\n\n-- Datos ficticios para practicar (ejecutar una sola vez).\nINSERT INTO estudiante (first_name, email, activo) VALUES\n    ('Ana Torres', 'ana@example.com', TRUE),\n    ('Carlos Ruiz', 'carlos@example.com', TRUE),\n    ('Laura Díaz', 'laura@example.com', FALSE);\n"
+    "connection": "<?php\nrequire_once __DIR__ . '/_helpers.php';\n\n// Configura estos valores en el entorno de tu servidor local.\n$host = getenv('DB_HOST') ?: '127.0.0.1';\n$port = getenv('DB_PORT') ?: '5432';\n$base = getenv('DB_NAME') ?: 'prueba_crud';\n$usuario = getenv('DB_USER') ?: 'postgres';\n$clave = getenv('DB_PASSWORD') ?: '';\n\nset_exception_handler(function (Throwable $error) {\n    error_log($error->getMessage());\n    fallar('Error del servidor; revisa la conexión y el registro de PHP', 500);\n});\n\n$conn = new PDO(\n    \"pgsql:host=$host;port=$port;dbname=$base\",\n    $usuario,\n    $clave,\n    [\n        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,\n        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,\n        PDO::ATTR_EMULATE_PREPARES => false\n    ]\n);\n",
+    "helpers": "<?php\n// Validaciones compartidas. conexion.php carga este archivo automáticamente.\nfunction fallar(string $mensaje, int $estado): never {\n    http_response_code($estado);\n    if ($_SERVER['REQUEST_METHOD'] === 'GET') {\n        header('Content-Type: application/json; charset=utf-8');\n        echo json_encode(['error' => $mensaje], JSON_UNESCAPED_UNICODE);\n    } else {\n        header('Content-Type: text/plain; charset=utf-8');\n        echo $mensaje;\n    }\n    exit;\n}\n\nfunction exigirMetodo(string $metodo): void {\n    if ($_SERVER['REQUEST_METHOD'] !== $metodo) {\n        header('Allow: ' . $metodo);\n        fallar('Método no permitido', 405);\n    }\n}\n\nfunction leerJSON(): array {\n    $tipo = strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0]));\n    if ($tipo !== 'application/json') fallar('Envía Content-Type: application/json', 415);\n    try {\n        $objeto = json_decode(file_get_contents('php://input'), false, 512, JSON_THROW_ON_ERROR);\n    } catch (JsonException $e) {\n        fallar('El JSON no es válido', 400);\n    }\n    if (!is_object($objeto)) fallar('El cuerpo debe ser un objeto JSON', 400);\n    return get_object_vars($objeto);\n}\n\nfunction validarID(mixed $valor): int {\n    if (!is_int($valor) && !is_string($valor)) fallar('id debe ser un entero positivo', 422);\n    $id = filter_var($valor, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);\n    if ($id === false) fallar('id debe ser un entero positivo', 422);\n    return $id;\n}\n\nfunction validarNombre(mixed $nombre): void {\n    if (!is_string($nombre) || trim($nombre) === '' || mb_strlen($nombre) > 80) {\n        fallar('Nombre obligatorio; máximo 80 caracteres', 422);\n    }\n}\n\nfunction validarCampos(mixed $nombre, mixed $year, mixed $birth_year, mixed $documento): void {\n    validarNombre($nombre);\n    foreach (['year' => $year, 'birth_year' => $birth_year] as $campo => $valor) {\n        if ((!is_int($valor) && !is_string($valor)) || filter_var($valor, FILTER_VALIDATE_INT) === false) {\n            fallar($campo . ' debe ser un entero', 422);\n        }\n    }\n    if (!is_string($documento) || trim($documento) === '' || mb_strlen($documento) > 100) {\n        fallar('Documento obligatorio; máximo 100 caracteres', 422);\n    }\n}\n",
+    "sql": "-- Crea prueba_crud en PostgreSQL y ejecuta este archivo dentro de esa base.\n-- Si ya existe estudiante con otro esquema, no se modifica automáticamente.\nCREATE TABLE IF NOT EXISTS estudiante (\n    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n    first_name VARCHAR(80) NOT NULL,\n    year INTEGER NOT NULL,\n    birth_year INTEGER NOT NULL,\n    documento VARCHAR(100) NOT NULL\n);\n\n-- Datos ficticios. Ejecuta estos INSERT una sola vez.\nINSERT INTO estudiante (first_name, year, birth_year, documento) VALUES\n    ('Ana Torres', 2026, 2003, '001234'),\n    ('Carlos Ruiz', 2026, 2001, '009876'),\n    ('Laura Díaz', 2025, 2004, '004321');\n"
   },
   "table": {
-    "html": "<table class=\"table table-striped\">\n    <thead>\n        <tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Estado</th></tr>\n    </thead>\n    <tbody id=\"tabla-estudiantes\"></tbody>\n</table>\n<p id=\"mensaje\" role=\"status\"></p>\n\n<!-- Bootstrap es opcional: solo aporta estilos. -->\n<!-- Carga tu JS al final del body o con defer. -->\n",
-    "js": "function renderizarTabla(estudiantes) {\n    const tbody = document.getElementById('tabla-estudiantes');\n    tbody.replaceChildren(); // Evita duplicar filas.\n\n    for (const estudiante of estudiantes) {\n        const fila = document.createElement('tr');\n        const valores = [estudiante.id, estudiante.first_name,\n                         estudiante.email, estudiante.activo ? 'Activo' : 'Inactivo'];\n\n        for (const valor of valores) {\n            const celda = document.createElement('td');\n            celda.textContent = valor; // Muestra texto, no ejecuta HTML.\n            fila.appendChild(celda);\n        }\n        tbody.appendChild(fila);\n    }\n}\n\nasync function cargarTabla() {\n    const mensaje = document.getElementById('mensaje');\n    mensaje.textContent = 'Cargando...';\n    try {\n        const datos = await listarEstudiantes(); // Copia también el JS de GET.\n        renderizarTabla(datos);\n        mensaje.textContent = datos.length ? '' : 'No hay estudiantes';\n    } catch (error) {\n        mensaje.textContent = error.message;\n    }\n}\n\ncargarTabla(); // Después de que exista el tbody.\n// Tras guardar, actualizar o eliminar: await cargarTabla();\n"
+    "html": "<form id=\"formEstudiante\">\n    <input type=\"text\" id=\"first_name\" name=\"first_name\" placeholder=\"Nombre\" maxlength=\"80\" required>\n    <input type=\"number\" id=\"year\" name=\"year\" placeholder=\"Año\" step=\"1\" required>\n    <input type=\"number\" id=\"birth_year\" name=\"birth_year\" placeholder=\"Año de nacimiento\" step=\"1\" required>\n    <input type=\"text\" id=\"documento\" name=\"documento\" placeholder=\"Documento\" maxlength=\"100\" required>\n    <button type=\"submit\">Guardar</button>\n</form>\n\n<p id=\"mensaje\" role=\"status\"></p>\n\n<table border=\"1\">\n    <thead>\n        <tr>\n            <th>Nombre</th><th>Año</th><th>Año nacimiento</th>\n            <th>Documento</th><th>Acciones</th>\n        </tr>\n    </thead>\n    <tbody id=\"tablaEstudiantes\"></tbody>\n</table>\n\n<script src=\"app.js\"></script>\n",
+    "js": "const formEstudiante = document.getElementById(\"formEstudiante\");\nconst tabla = document.getElementById(\"tablaEstudiantes\");\nconst mensaje = document.getElementById(\"mensaje\");\n\nfunction mostrarError(error) {\n    mensaje.textContent = error.message;\n}\n// POST\nformEstudiante.addEventListener(\"submit\", async function (event) {\n    event.preventDefault();\n    const datos = new FormData();\n    datos.append(\"first_name\", document.getElementById(\"first_name\").value);\n    datos.append(\"year\", document.getElementById(\"year\").value);\n    datos.append(\"birth_year\", document.getElementById(\"birth_year\").value);\n    datos.append(\"documento\", document.getElementById(\"documento\").value);\n\n    const boton = formEstudiante.querySelector('button[type=\"submit\"]');\n    boton.disabled = true;\n    try {\n        const response = await fetch(\"guardar.php\", {\n            method: \"POST\",\n            body: datos\n        });\n        const respuesta = await response.text();\n        if (!response.ok) throw new Error(respuesta);\n        formEstudiante.reset();\n        await listarEstudiantes();\n        mensaje.textContent = respuesta;\n    } catch (error) {\n        mostrarError(error);\n    } finally {\n        boton.disabled = false;\n    }\n});\n\n// GET\nasync function listarEstudiantes() {\n    const response = await fetch(\"listar.php\");\n    const estudiantes = await response.json();\n    if (!response.ok) throw new Error(estudiantes.error || \"No se pudo listar\");\n\n    tabla.innerHTML = \"\";\n    estudiantes.forEach(estudiante => {\n        const fila = document.createElement(\"tr\");\n        // textContent evita que un nombre con comillas rompa los botones.\n        [estudiante.first_name, estudiante.year,\n         estudiante.birth_year, estudiante.documento].forEach(valor => {\n            const celda = document.createElement(\"td\");\n            celda.textContent = valor;\n            fila.appendChild(celda);\n        });\n\n        const acciones = document.createElement(\"td\");\n        const editar = document.createElement(\"button\");\n        editar.textContent = \"Editar\";\n        editar.onclick = () => editarEstudiante(estudiante.id,\n            estudiante.first_name, estudiante.year,\n            estudiante.birth_year, estudiante.documento).catch(mostrarError);\n\n        const nombre = document.createElement(\"button\");\n        nombre.textContent = \"Solo nombre\";\n        nombre.onclick = () => cambiarNombre(estudiante.id,\n            estudiante.first_name).catch(mostrarError);\n\n        const eliminar = document.createElement(\"button\");\n        eliminar.textContent = \"Eliminar\";\n        eliminar.onclick = () => eliminarEstudiante(estudiante.id).catch(mostrarError);\n        acciones.append(editar, nombre, eliminar);\n        fila.appendChild(acciones);\n        tabla.appendChild(fila);\n    });\n    mensaje.textContent = estudiantes.length ? \"\" : \"No hay estudiantes\";\n}\n\n// PUT\nasync function editarEstudiante(id, first_name, year, birth_year, documento) {\n    const nuevoNombre = prompt(\"Nombre:\", first_name);\n    if (nuevoNombre === null) return;\n    const nuevoYear = prompt(\"Año:\", year);\n    if (nuevoYear === null) return;\n    const nuevoNacimiento = prompt(\"Año nacimiento:\", birth_year);\n    if (nuevoNacimiento === null) return;\n    const nuevoDocumento = prompt(\"Documento:\", documento);\n    if (nuevoDocumento === null) return;\n\n    const response = await fetch(\"actualizar.php\", {\n        method: \"PUT\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify({\n            id: id,\n            first_name: nuevoNombre,\n            year: nuevoYear,\n            birth_year: nuevoNacimiento,\n            documento: nuevoDocumento\n        })\n    });\n    const respuesta = await response.text();\n    if (!response.ok) throw new Error(respuesta);\n    await listarEstudiantes();\n    mensaje.textContent = respuesta;\n}\n\n// PATCH\nasync function cambiarNombre(id, first_name) {\n    const nuevoNombre = prompt(\"Nuevo nombre:\", first_name);\n    if (nuevoNombre === null) return;\n\n    const response = await fetch(\"modificar.php\", {\n        method: \"PATCH\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify({ id: id, first_name: nuevoNombre })\n    });\n    const respuesta = await response.text();\n    if (!response.ok) throw new Error(respuesta);\n    await listarEstudiantes();\n    mensaje.textContent = respuesta;\n}\n\n// DELETE\nasync function eliminarEstudiante(id) {\n    const confirmar = confirm(\"¿Eliminar estudiante?\");\n    if (!confirmar) return;\n\n    const response = await fetch(\"eliminar.php\", {\n        method: \"DELETE\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify({ id: id })\n    });\n    const respuesta = await response.text();\n    if (!response.ok) throw new Error(respuesta);\n    await listarEstudiantes();\n    mensaje.textContent = respuesta;\n}\n\nlistarEstudiantes().catch(mostrarError);\n"
   }
 };

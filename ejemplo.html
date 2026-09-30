@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CRUD de estudiantes</title><link rel="stylesheet" href="assets/styles.css"><style>body{padding:30px;max-width:1100px;margin:auto}h1{font-size:35px}form{display:flex;flex-wrap:wrap;gap:10px;margin:25px 0}input{min-width:150px;flex:1;padding:12px;border:1px solid #dfe2dd}button{padding:10px;background:#2857e7;color:white}td button{margin:3px;font-size:11px}table{border:0}#mensaje{color:#2857e7}</style></head><body><a href="index.html#table">← Volver a la guía</a><h1>Estudiantes.</h1><p>Formulario conectado a PHP. Ábrelo desde tu servidor local con PostgreSQL configurado.</p><form id="formEstudiante">
+    <input type="text" id="first_name" name="first_name" placeholder="Nombre" maxlength="80" required>
+    <input type="number" id="year" name="year" placeholder="Año" step="1" required>
+    <input type="number" id="birth_year" name="birth_year" placeholder="Año de nacimiento" step="1" required>
+    <input type="text" id="documento" name="documento" placeholder="Documento" maxlength="100" required>
+    <button type="submit">Guardar</button>
+</form>
+
+<p id="mensaje" role="status"></p>
+
+<table border="1">
+    <thead>
+        <tr>
+            <th>Nombre</th><th>Año</th><th>Año nacimiento</th>
+            <th>Documento</th><th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody id="tablaEstudiantes"></tbody>
+</table>
+
+<script src="app.js"></script>
+</body></html>

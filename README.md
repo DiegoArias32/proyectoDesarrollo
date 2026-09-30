@@ -1,22 +1,18 @@
 # CRUD / Manual de consulta
 
-Guía en español para consultar y copiar ejemplos de PHP nativo, JavaScript y PostgreSQL. Incluye GET, POST, PUT, PATCH, DELETE, renderizado de tablas, explicación por pasos y una demo local.
+Guía en español adaptada al formulario de Diego con `first_name`, `year`, `birth_year` y `documento`. Conserva `formEstudiante`, `tablaEstudiantes`, `prompt()` para editar y `confirm()` para eliminar.
 
-## Abrir la guía
+## Consulta inmediata
 
-Abre `index.html` directamente en tu navegador. No necesita instalación ni internet. Navega por los métodos y usa **Copiar**. La búsqueda también reconoce conceptos de los ejemplos.
+Abre `index.html`. Incluye ejemplos copiables PHP + JS, explicaciones, el HTML del formulario y `app.js` completo, una demo local y solución de errores. La guía funciona sin servidor e internet. La demo usa datos ficticios en memoria.
 
-La demo usa datos ficticios en memoria: no llama a los endpoints ni guarda información en una base de datos.
+## CRUD conectado a PostgreSQL
 
-## Ejecutar los endpoints reales
-
-1. Usa PHP 8.1 o superior con `pdo_pgsql` y `mbstring`, y PostgreSQL 10 o superior.
-2. Crea una base llamada `prueba_crud`. Ejecuta `database.sql` dentro de esa base desde pgAdmin o psql. Los INSERT de muestra se ejecutan una sola vez.
-3. Configura las variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD` en tu entorno local. `.env.example` es solo una referencia; no se carga automáticamente. No subas contraseñas reales a Git.
-4. Desde la carpeta del proyecto, inicia `php -S 127.0.0.1:8000` y abre `http://127.0.0.1:8000`.
-5. Copia los ejemplos de JavaScript a tu frontend y ejecuta las funciones desde un formulario o botón. Para la tabla, copia la sección **Renderizar tabla** y también la función de **GET**.
-
-En PowerShell, antes de iniciar el servidor:
+1. PHP 8.1+ con `pdo_pgsql` y `mbstring`; PostgreSQL 10+.
+2. Crea `prueba_crud` y ejecuta `database.sql` en esa base. Si ya existe estudiante con otro esquema, adapta la tabla: CREATE TABLE IF NOT EXISTS no migra columnas.
+3. Configura `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` en el entorno de tu servidor. `.env.example` no se carga automáticamente.
+4. Ejecuta `php -S 127.0.0.1:8000` desde la carpeta pagina.
+5. Abre `http://127.0.0.1:8000/ejemplo.html` para usar el formulario con la base real.
 
 ```powershell
 $env:DB_HOST = '127.0.0.1'
@@ -27,25 +23,18 @@ $env:DB_PASSWORD = 'TU_CLAVE_LOCAL'
 php -S 127.0.0.1:8000
 ```
 
-## Contratos
-
-| Método | Archivo | Entrada | Operación |
+| Método | Archivo | Entrada | Respuesta |
 | --- | --- | --- | --- |
-| GET | `api/listar.php` | Sin cuerpo | Lista todos los estudiantes |
-| POST | `api/guardar.php` | FormData: `first_name`, `email` | Crea un estudiante activo |
-| PUT | `api/actualizar.php` | JSON: `id`, `first_name`, `email`, `activo` | Reemplaza todos los campos editables |
-| PATCH | `api/modificar.php` | JSON: `id`, `activo` | Cambia únicamente el estado |
-| DELETE | `api/eliminar.php` | JSON: `id` | Elimina un estudiante |
+| GET | listar.php | Sin cuerpo | Arreglo JSON |
+| POST | guardar.php | FormData con los cuatro campos | Texto, estado 201 |
+| PUT | actualizar.php | JSON con id y los cuatro campos | Texto, estado 200 |
+| PATCH | modificar.php | JSON con id y first_name | Texto, estado 200 |
+| DELETE | eliminar.php | JSON con id | Texto, estado 200 |
 
-Los archivos PHP dependen de `api/_helpers.php` y `api/conexion.php`. Las rutas del JS parten de la raíz del proyecto. `activo` es un booleano JSON, sin comillas. Las consultas usan parámetros preparados. Una fila inexistente responde 404; entradas inválidas, 400/415/422; método incorrecto, 405.
+Los endpoints están en la misma carpeta que `ejemplo.html` y `app.js`; requieren `conexion.php`, que carga `_helpers.php`. GET usa response.json(); los cambios usan response.text(). Las consultas usan parámetros preparados. El documento se mantiene como texto para conservar ceros iniciales.
 
-El esquema agrega `email` y `activo` al ejemplo previo con `first_name`. Adapta los campos si tu prueba usa otra tabla.
+Correcciones del código pegado: POST y PUT guardan los cuatro campos; cancelar un prompt no envía cambios; response.ok se comprueba antes de borrar el formulario; los botones se construyen con funciones y textContent, evitando interpolar nombres dentro de onclick; se agrega PATCH para el nombre.
 
-Los endpoints son material de práctica local. Antes de usarlos en una aplicación publicada, agrega autenticación y permisos según el proyecto. GitHub y GitHub Pages no ejecutan PHP: necesitas un servidor PHP para la API.
+GitHub y GitHub Pages no ejecutan PHP. Los endpoints requieren el servidor PHP y PostgreSQL. La guía es material de práctica local.
 
-## Referencias
-
-- [PHP: PDO::prepare](https://www.php.net/manual/en/pdo.prepare.php)
-- [MDN: usar fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
-- [MDN: PUT](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PUT)
-- [MDN: PATCH](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PATCH)
+Referencias: [PDO::prepare](https://www.php.net/manual/en/pdo.prepare.php), [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch), [PUT](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PUT), [PATCH](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PATCH).

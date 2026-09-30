@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f2">
+  <meta name="description" content="Guía práctica de CRUD: ejemplos copiables de PHP nativo, JavaScript y PostgreSQL.">
+  <title>CRUD / Manual de consulta</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script src="assets/data.js" defer></script>
+  <script src="assets/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Ir a los ejemplos</a>
+  <aside class="sidebar" aria-label="Navegación de la guía">
+    <a class="brand" href="#get" aria-label="CRUD Manual, inicio"><span class="brand-mark">/</span> CRUD<span class="brand-dot">.</span></a>
+    <p class="brand-caption">MANUAL DE CONSULTA <span>01</span></p>
+    <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search" type="search" placeholder="Buscar método o concepto" aria-label="Buscar método o concepto"><kbd>/</kbd></label>
+    <nav>
+      <p class="nav-heading">OPERACIONES <span>05</span></p>
+      <a class="nav-item active" href="#get" data-page="get"><span class="nav-method">GET</span><span>Consultar</span><span class="nav-arrow">↗</span></a>
+      <a class="nav-item" href="#post" data-page="post"><span class="nav-method">POST</span><span>Crear</span><span class="nav-arrow">↗</span></a>
+      <a class="nav-item" href="#put" data-page="put"><span class="nav-method">PUT</span><span>Actualizar</span><span class="nav-arrow">↗</span></a>
+      <a class="nav-item" href="#patch" data-page="patch"><span class="nav-method">PATCH</span><span>Modificar</span><span class="nav-arrow">↗</span></a>
+      <a class="nav-item" href="#delete" data-page="delete"><span class="nav-method">DELETE</span><span>Eliminar</span><span class="nav-arrow">↗</span></a>
+      <p class="nav-heading resource-heading">HERRAMIENTAS</p>
+      <a class="nav-item resource" href="#setup" data-page="setup"><span>⌘</span><span>Conexión y SQL</span></a>
+      <a class="nav-item resource" href="#table" data-page="table"><span>▤</span><span>Renderizar tabla</span></a>
+      <a class="nav-item resource" href="#demo" data-page="demo"><span>▷</span><span>Demo interactiva</span></a>
+      <a class="nav-item resource" href="#errors" data-page="errors"><span>?</span><span>Errores frecuentes</span></a>
+    </nav>
+    <p id="search-empty" hidden>Sin coincidencias.</p>
+    <div class="sidebar-bottom"><span class="status-dot"></span><span>Disponible sin internet</span><p>PHP nativo · JavaScript · PostgreSQL</p><a href="https://github.com/DiegoArias32/proyectoDesarrollo" target="_blank" rel="noopener noreferrer">Ver proyecto en GitHub ↗</a></div>
+  </aside>
+  <div class="main-shell">
+    <header class="topbar"><span>DESARROLLO WEB <span class="breadcrumb-slash">/</span> <strong>Referencia práctica</strong></span><span class="edition">HTML + PHP + JS <span>ED. 01</span></span></header>
+    <main id="workspace" tabindex="-1"></main>
+    <footer><span>Un mismo recorrido: petición → PHP → PostgreSQL → respuesta.</span><a href="#setup">Preparar el proyecto ↗</a></footer>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
